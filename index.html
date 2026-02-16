@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>DONSOCIAL</title>
+    <title>GOLDEN</title>
     <link rel="icon" href="favicon.ico" type="image/x-icon" />
 
     <!-- Critical CSS: primer pintado sin esperar styles.css -->
@@ -62,13 +62,13 @@
           window.userLn=(params.get("ln")||"").trim()||undefined;
           window.externalId=getOrCreateExternalId();
           var t=document.createElement("script");t.async=true;t.src="https://connect.facebook.net/en_US/fbevents.js";(document.head||document.documentElement).appendChild(t);
-          fbq("init","1459000075661483",{external_id:window.externalId,em:window.userEmail||void 0,ph:window.userPhone||void 0,fn:window.userFn,ln:window.userLn,country:"AR"});
+          fbq("init","TU_PIXEL_ID",{external_id:window.externalId,em:window.userEmail||void 0,ph:window.userPhone||void 0,fn:window.userFn,ln:window.userLn,country:"AR"});
           fbq("track","PageView");
         },0);
       })();
     </script>
     <noscript><img height="1" width="1" style="display:none"
-      src="https://www.facebook.com/tr?id=1459000075661483&ev=PageView&noscript=1"/></noscript>
+      src="https://www.facebook.com/tr?id=TU_PIXEL_ID&ev=PageView&noscript=1"/></noscript>
   </head>
 
   <body>
@@ -76,7 +76,7 @@
       <div class="overlay"></div>
       <div class="content">
         <img src="imagenes/logo.png" class="logo" width="240" height="120"
-             alt="DON SOCIAL" decoding="async" fetchpriority="high" />
+             alt="GOLDEN" decoding="async" fetchpriority="high" />
 
         <p class="title">Envianos un WhatsApp<br />para crear tu cuenta</p>
 
@@ -87,7 +87,7 @@
         </a>
 
         <p class="subtitle">Sin Límite de retiro<br />Sin Cronogramas<br />Ganás y cobrás a cualquier hora</p>
-        <p class="description">-RED OFICIAL: DON SOCIAL 32-</p>
+        <p class="description">-GOLDEN-</p>
       </div>
     </div>
 
@@ -96,16 +96,16 @@
  * CONFIG
  ************************************************************/
 const LANDING_CONFIG = {
-  BRAND_NAME: "DON SOCIAL",
+  BRAND_NAME: "GOLDEN",
   MODE: "ads",
-  PROMO: { ENABLED: true, LANDING_TAG: "CH1.0" }
+  PROMO: { ENABLED: true, LANDING_TAG: "GLD10" }
 };
 
 /************************************************************
  * NÚMEROS FIJOS (aleatorio) — funciona con 1 o varios
  ************************************************************/
 const FIXED_PHONES = [
-  "5493516768842"
+  "549" //Completar Numero
 ];
 
 /************************************************************
