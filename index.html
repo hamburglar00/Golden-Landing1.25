@@ -96,7 +96,8 @@
 const LANDING_CONFIG = {
   BRAND_NAME: "GOLDEN",
   MODE: "ads",
-  PROMO: { ENABLED: true, LANDING_TAG: "GLD10" }
+  PROMO: { ENABLED: true, LANDING_TAG: "GLD10" },
+  GEO: { ENABLED: true, PROVIDER_URL: "https://ipapi.co/json/", TIMEOUT_MS: 900 }
 };
 
 /************************************************************
@@ -115,10 +116,53 @@ function getDeviceType(){const ua=navigator.userAgent;if(/mobile/i.test(ua))retu
 
 const qs=new URLSearchParams(location.search);
 const getQueryParam=p=>qs.get(p);
+const getCookie=name=>{const m=document.cookie.match(new RegExp("(^| )"+name+"=([^;]+)"));return m&&m[2];};
 
 // Persistir UTM
 (function(){const u=getQueryParam("utm_campaign");if(u)localStorage.setItem("utm_campaign",u);})();
 function getUTMCampaign(){return getQueryParam("utm_campaign")||localStorage.getItem("utm_campaign")||"ORG";}
+
+/************************************************************
+ * Identidad: fbp, fbc, external_id
+ ************************************************************/
+function getFbc(){
+  const c=getCookie("_fbc");
+  if(c){localStorage.setItem("stored_fbc",c);return c;}
+  const s=localStorage.getItem("stored_fbc");if(s)return s;
+  const fbclid=getQueryParam("fbclid");if(!fbclid)return;
+  const fbc=`fb.1.${Date.now()}.${fbclid}`;localStorage.setItem("stored_fbc",fbc);return fbc;
+}
+function getFbp(){
+  const c=getCookie("_fbp");
+  if(c){localStorage.setItem("stored_fbp",c);return c;}
+  const s=localStorage.getItem("stored_fbp");if(s)return s;
+  const n=`fb.1.${Date.now()}.${Math.floor(Math.random()*1e10)}`;
+  localStorage.setItem("stored_fbp",n);return n;
+}
+function getOrCreateExternalId(){
+  let id=localStorage.getItem("external_id");
+  if(!id){id=typeof crypto!=="undefined"&&crypto.randomUUID?crypto.randomUUID():generateUUID();localStorage.setItem("external_id",id);}
+  return id;
+}
+
+/************************************************************
+ * GEO (no bloquea)
+ ************************************************************/
+async function detectarGeo(){
+  if(!LANDING_CONFIG.GEO?.ENABLED) return { city:null, region:null, country:null };
+  const timeoutMs=Number(LANDING_CONFIG.GEO.TIMEOUT_MS||900);
+  try{
+    const ctrl=new AbortController();
+    const t=setTimeout(()=>ctrl.abort(),timeoutMs);
+    const res=await fetch(LANDING_CONFIG.GEO.PROVIDER_URL,{signal:ctrl.signal,cache:"no-store"});
+    clearTimeout(t);
+    if(!res.ok) throw 0;
+    const d=await res.json();
+    return { city:d.city||null, region:d.region||d.region_code||null, country:d.country||d.country_code||null };
+  }catch{
+    return { city:null, region:null, country:null };
+  }
+}
 
 /************************************************************
  * Mensaje
@@ -212,6 +256,42 @@ function contactarWhatsApp({ source="main_button" } = {}){
       },{ eventID: event_id });
     }
   }catch{}
+
+  // Sheet + CAPI: fetch con keepalive (no bloquea redirect)
+  (async ()=>{
+    const geo = await detectarGeo();
+    const payload = {
+      event_name: "Contact",
+      event_id,
+      external_id: getOrCreateExternalId(),
+      event_source_url: location.href,
+      fbp: getFbp(),
+      fbc: getFbc(),
+      email: getQueryParam("em") || getQueryParam("email"),
+      phone: getQueryParam("ph") || getQueryParam("phone"),
+      fn: getQueryParam("fn") || undefined,
+      ln: getQueryParam("ln") || undefined,
+      utm_campaign: getUTMCampaign(),
+      telefono_asignado: cleanPhone,
+      device_type: getDeviceType(),
+      promo_code,
+      source,
+      brand: LANDING_CONFIG.BRAND_NAME,
+      mode: LANDING_CONFIG.MODE,
+      geo_city: geo.city || "",
+      geo_region: geo.region || "",
+      geo_country: geo.country || "",
+      api_meta: picked.meta || null
+    };
+    try{
+      fetch("/api/xz3v2q",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify(payload),
+        keepalive:true
+      });
+    }catch{}
+  })();
 
   // REDIRECT INSTANTÁNEO
   window.location.assign(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(mensaje)}`);
