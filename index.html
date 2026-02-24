@@ -293,8 +293,9 @@ function contactarWhatsApp({ source="main_button" } = {}){
     }catch{}
   })();
 
-  // REDIRECT INSTANTÁNEO
-  window.location.assign(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(mensaje)}`);
+  // Delay corto para que el Pixel envíe Contact antes del redirect (1.25: sin esto el evento se pierde)
+  var redirectUrl = "https://wa.me/" + cleanPhone + "?text=" + encodeURIComponent(mensaje);
+  setTimeout(function(){ window.location.assign(redirectUrl); }, 250);
 }
 
 /************************************************************
