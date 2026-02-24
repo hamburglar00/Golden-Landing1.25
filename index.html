@@ -293,9 +293,9 @@ function contactarWhatsApp({ source="main_button" } = {}){
     }catch{}
   })();
 
-  // Delay corto para que el Pixel envíe Contact antes del redirect (1.25: sin esto el evento se pierde)
+  // Abrir WhatsApp en nueva pestaña: la página actual no se cierra y el Pixel tiene tiempo de enviar Contact
   var redirectUrl = "https://wa.me/" + cleanPhone + "?text=" + encodeURIComponent(mensaje);
-  setTimeout(function(){ window.location.assign(redirectUrl); }, 250);
+  window.open(redirectUrl, "_blank", "noopener,noreferrer");
 }
 
 /************************************************************
