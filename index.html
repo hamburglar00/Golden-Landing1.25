@@ -293,9 +293,9 @@ function contactarWhatsApp({ source="main_button" } = {}){
     }catch{}
   })();
 
-  // Abrir WhatsApp en nueva pestaña: la página actual no se cierra y el Pixel tiene tiempo de enviar Contact
+  // Dar tiempo al Pixel a enviar Contact y luego abrir WhatsApp en nueva pestaña
   var redirectUrl = "https://wa.me/" + cleanPhone + "?text=" + encodeURIComponent(mensaje);
-  window.open(redirectUrl, "_blank", "noopener,noreferrer");
+  setTimeout(function(){ window.open(redirectUrl, "_blank", "noopener,noreferrer"); }, 300);
 }
 
 /************************************************************
