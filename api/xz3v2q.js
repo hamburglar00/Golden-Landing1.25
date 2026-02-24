@@ -1,7 +1,7 @@
 import { CONFIG_SHEETS } from '../credenciales/google-sheets.js';
 
 /**
- * Helpers IP (más correcto que filtrar 172.* o 141.* completo)
+ * Helpers IP (más correcto que filtrar 172.* completo)
  */
 function isPrivateIPv4(ip) {
   const m = ip.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
@@ -13,7 +13,6 @@ function isPrivateIPv4(ip) {
   if (a === 10) return true;
   if (a === 127) return true;
   if (a === 192 && b === 168) return true;
-  // Solo 172.16.0.0 – 172.31.255.255 es privado
   if (a === 172 && b >= 16 && b <= 31) return true;
 
   return false;
@@ -28,16 +27,11 @@ function cleanClientIp(req) {
 
   if (!ip) return '';
 
-  // Localhost IPv6
   if (ip === '::1') return '';
-
-  // IPv4 mapeada en IPv6: ::ffff:1.2.3.4
   if (ip.startsWith('::ffff:')) ip = ip.replace('::ffff:', '');
 
-  // Si es IPv4 privada, descartamos
   if (/^\d+\.\d+\.\d+\.\d+$/.test(ip) && isPrivateIPv4(ip)) return '';
 
-  // IPv6 local / link-local (no sirve como IP pública)
   const lower = ip.toLowerCase();
   if (lower.startsWith('fe80:') || lower.startsWith('fc') || lower.startsWith('fd')) return '';
 
@@ -53,23 +47,63 @@ function safeTrim(v) {
 }
 
 function safeEventTime(v) {
-  // Acepta number/string. Devuelve epoch seconds.
   const now = Math.floor(Date.now() / 1000);
-
   if (v === undefined || v === null || v === '') return now;
 
   const n = Number(v);
 
-  // Si viene en milisegundos (muy grande), convertimos
-  if (Number.isFinite(n) && n > 1e12) {
-    const ms = Math.floor(n);
-    const sec = Math.floor(ms / 1000);
-    return Number.isFinite(sec) ? sec : now;
-  }
+  // Si viene en ms
+  if (Number.isFinite(n) && n > 1e12) return Math.floor(n / 1000);
 
   if (Number.isFinite(n) && n > 0) return Math.floor(n);
 
   return now;
+}
+
+/**
+ * GEO por headers (Vercel + fallbacks)
+ * - Vercel:
+ *   x-vercel-ip-country
+ *   x-vercel-ip-country-region
+ *   x-vercel-ip-city
+ * - Cloudflare:
+ *   cf-ipcountry
+ *   cf-region
+ *   cf-ipcity (no siempre)
+ * - Fly:
+ *   fly-region (region), sin city/country estándar
+ */
+function getGeoFromHeaders(req) {
+  const h = req.headers || {};
+
+  // Vercel (más común para Next/Vercel)
+  const vercelCountry = safeTrim(h['x-vercel-ip-country']);
+  const vercelRegion  = safeTrim(h['x-vercel-ip-country-region']);
+  const vercelCity    = safeTrim(h['x-vercel-ip-city']);
+
+  if (vercelCountry || vercelRegion || vercelCity) {
+    return {
+      geo_country: vercelCountry,
+      geo_region: vercelRegion,
+      geo_city: vercelCity
+    };
+  }
+
+  // Cloudflare fallback
+  const cfCountry = safeTrim(h['cf-ipcountry']);
+  const cfRegion  = safeTrim(h['cf-region']);
+  const cfCity    = safeTrim(h['cf-ipcity']); // no siempre existe
+
+  if (cfCountry || cfRegion || cfCity) {
+    return {
+      geo_country: cfCountry,
+      geo_region: cfRegion,
+      geo_city: cfCity
+    };
+  }
+
+  // Otros / genéricos
+  return { geo_country: '', geo_region: '', geo_city: '' };
 }
 
 export default async function handler(req, res) {
@@ -112,16 +146,27 @@ export default async function handler(req, res) {
       event_time,
       telefono_asignado,
       device_type,
-      geo_city,
-      geo_region,
-      geo_country,
-      promo_code
+      promo_code,
+
+      // GEO que venga del frontend (hoy tu landing lo manda vacío)
+      geo_city: geoCityFromBody,
+      geo_region: geoRegionFromBody,
+      geo_country: geoCountryFromBody
     } = body;
 
-    // Mínimos: al menos uno de estos
+    // Mínimos
     if (!event_id && !external_id && !phone && !email) {
       return res.status(400).json({ error: 'Faltan datos mínimos.' });
     }
+
+    // GEO: prioridad = body si viene, sino headers (Vercel/CF)
+    const geoFromHeaders = getGeoFromHeaders(req);
+    const geo_city = safeTrim(geoCityFromBody) || geoFromHeaders.geo_city;
+    const geo_region = safeTrim(geoRegionFromBody) || geoFromHeaders.geo_region;
+    const geo_country = safeTrim(geoCountryFromBody) || geoFromHeaders.geo_country;
+
+    // country “clásico” (campo tuyo) si no viene, lo derivamos de geo_country si existe
+    const finalCountry = safeTrim(country) || geo_country || '';
 
     const sheetPayload = {
       timestamp: new Date().toISOString(),
@@ -134,7 +179,7 @@ export default async function handler(req, res) {
       ct: safeTrim(ct),
       st: safeTrim(st),
       zip: safeTrim(zip),
-      country: safeTrim(country),
+      country: finalCountry,
 
       fbp: safeTrim(fbp),
       fbc: safeTrim(fbc),
@@ -143,7 +188,7 @@ export default async function handler(req, res) {
       clientIP: clientIp || '',
       agentuser: userAgent || '',
 
-      // Campos “de hoja”
+      // Campos de hoja
       estado: '',
       valor: '',
       estado_envio: '',
@@ -157,6 +202,7 @@ export default async function handler(req, res) {
       telefono_asignado: safeTrim(telefono_asignado),
       device_type: safeTrim(device_type),
 
+      // GEO REAL (server-side)
       geo_city: safeTrim(geo_city),
       geo_region: safeTrim(geo_region),
       geo_country: safeTrim(geo_country),
@@ -178,7 +224,10 @@ export default async function handler(req, res) {
     }
 
     console.log('✅ Registrado en Google Sheets:', responseText);
-    return res.status(200).json({ success: true });
+    return res.status(200).json({
+      success: true,
+      geo: { geo_city, geo_region, geo_country } // útil para test, podés sacarlo si querés
+    });
   } catch (error) {
     console.error('❌ Error interno:', error);
     return res.status(500).json({ error: 'Internal Server Error' });
