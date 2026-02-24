@@ -52,14 +52,37 @@ export default async function handler(req, res) {
       event_time,
       telefono_asignado,
       device_type,
-      geo_city,     
-      geo_region,     
+      geo_city,
+      geo_region,
       geo_country,
       promo_code
     } = req.body || {};
 
     if (!event_id && !external_id && !phone && !email) {
       return res.status(400).json({ error: 'Faltan datos mínimos.' });
+    }
+
+    // GEO: si no vino desde el cliente, intentamos resolverla server-side con ipapi.co y la IP pública
+    let geoCity = geo_city || '';
+    let geoRegion = geo_region || '';
+    let geoCountry = geo_country || '';
+
+    if (!geoCity && !geoRegion && !geoCountry && clientIp) {
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 900);
+        const resp = await fetch(`https://ipapi.co/${clientIp}/json/`, { signal: controller.signal });
+        clearTimeout(timeout);
+
+        if (resp.ok) {
+          const d = await resp.json();
+          geoCity = d.city || '';
+          geoRegion = d.region || d.region_code || '';
+          geoCountry = d.country || d.country_code || '';
+        }
+      } catch (e) {
+        // si falla, dejamos geo en blanco y seguimos
+      }
     }
 
     const sheetPayload = {
@@ -87,9 +110,9 @@ export default async function handler(req, res) {
       event_time: event_time || Math.floor(Date.now() / 1000),
       telefono_asignado: telefono_asignado || '',
       device_type: device_type || '',
-      geo_city: geo_city || '',          
-      geo_region: geo_region || '',       
-      geo_country: geo_country || '',
+      geo_city: geoCity,
+      geo_region: geoRegion,
+      geo_country: geoCountry,
       promo_code: promo_code || ''
     };
 
