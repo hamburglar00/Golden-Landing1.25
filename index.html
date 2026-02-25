@@ -197,15 +197,6 @@
         return s || undefined;
       }
 
-      function getOrCreateExternalId(){
-        let id=localStorage.getItem("external_id");
-        if(!id){
-          id=(typeof crypto!=="undefined"&&crypto.randomUUID)?crypto.randomUUID():generateUUID();
-          localStorage.setItem("external_id",id);
-        }
-        return id;
-      }
-
       function buildMensaje(promo_code){
         const variantes = [
           "Hola! Vi este anuncio, me pasás info?",
@@ -310,21 +301,21 @@
         const payload = {
           event_name: "Contact",
           event_id: event_id,
-        
-          // usá el mismo external_id que inicializaste en el Pixel (más consistente)
+
+          // mismo external_id que el Pixel (consistente)
           external_id: window.externalId,
-        
+
           event_source_url: location.href,
           fbp: getFbp(),
           fbc: getFbc(),
-        
-          // ✅ clave: mandar lo mismo que usa el Pixel (query OR localStorage)
+
+          // manda lo mismo que usa el Pixel (query OR localStorage)
           email: window.userEmail || "",
           phone: window.userPhone || "",
-        
+
           fn: window.userFn || undefined,
           ln: window.userLn || undefined,
-        
+
           utm_campaign: getUTMCampaign(),
           telefono_asignado: cleanPhone,
           device_type: getDeviceType(),
@@ -332,7 +323,7 @@
           source: source,
           brand: LANDING_CONFIG.BRAND_NAME,
           mode: LANDING_CONFIG.MODE,
-        
+
           geo_city: "",
           geo_region: "",
           geo_country: "",
