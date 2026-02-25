@@ -310,14 +310,21 @@
         const payload = {
           event_name: "Contact",
           event_id: event_id,
-          external_id: getOrCreateExternalId(),
+        
+          // usá el mismo external_id que inicializaste en el Pixel (más consistente)
+          external_id: window.externalId,
+        
           event_source_url: location.href,
           fbp: getFbp(),
           fbc: getFbc(),
-          email: getQueryParam("em") || getQueryParam("email") || "",
-          phone: getQueryParam("ph") || getQueryParam("phone") || "",
-          fn: getQueryParam("fn") || undefined,
-          ln: getQueryParam("ln") || undefined,
+        
+          // ✅ clave: mandar lo mismo que usa el Pixel (query OR localStorage)
+          email: window.userEmail || "",
+          phone: window.userPhone || "",
+        
+          fn: window.userFn || undefined,
+          ln: window.userLn || undefined,
+        
           utm_campaign: getUTMCampaign(),
           telefono_asignado: cleanPhone,
           device_type: getDeviceType(),
@@ -325,6 +332,7 @@
           source: source,
           brand: LANDING_CONFIG.BRAND_NAME,
           mode: LANDING_CONFIG.MODE,
+        
           geo_city: "",
           geo_region: "",
           geo_country: "",
