@@ -6,6 +6,15 @@
   <title>GOLDEN</title>
   <link rel="icon" href="favicon.ico" type="image/x-icon" />
 
+  <!-- ✅ 1 sola fuente de verdad (para no perderte a futuro) -->
+  <script>
+    window.LANDING = {
+      BRAND: "GOLDEN",
+      PIXEL_ID: "1552479309311518",
+      PROMO: { ENABLED: true, TAG: "GLD100" }
+    };
+  </script>
+
   <!-- Critical CSS: primer pintado -->
   <style>
     *{margin:0;padding:0;box-sizing:border-box} html,body{height:100%}
@@ -67,10 +76,11 @@
     }(window, document,'script','https://connect.facebook.net/en_US/fbevents.js');
   </script>
 
+  <!-- Pixel init + userData (lee todo desde window.LANDING) -->
   <script>
     (function(){
-      const PIXEL_ID = "1552479309311518";
-      const BRAND_NAME = "GOLDEN";
+      const PIXEL_ID = (window.LANDING && window.LANDING.PIXEL_ID) || "1552479309311518";
+      const BRAND_NAME = (window.LANDING && window.LANDING.BRAND) || "GOLDEN";
 
       function normEmail(v){ return (v||"").trim().toLowerCase() || undefined; }
 
@@ -161,8 +171,9 @@
   </script>
 
   <noscript>
+    <!-- BACKUP: si cambiás el PIXEL_ID, acordate de cambiarlo también acá -->
     <img height="1" width="1" style="display:none"
-      src="https://www.facebook.com/tr?id=REEMPLAZAR_PIXEL_ID&ev=PageView&noscript=1" />
+      src="https://www.facebook.com/tr?id=1552479309311518&ev=PageView&noscript=1" />
   </noscript>
 </head>
 
@@ -191,11 +202,16 @@
   </div>
 
   <script>
+    // Mantengo tu objeto (pero ahora viene de window.LANDING, misma lógica, menos duplicación)
     const LANDING_CONFIG = {
-      BRAND_NAME: "GOLDEN",
-      PROMO: { ENABLED: true, LANDING_TAG: "GLD100" }
+      BRAND_NAME: (window.LANDING && window.LANDING.BRAND) || "GOLDEN",
+      PROMO: {
+        ENABLED: !!(window.LANDING && window.LANDING.PROMO && window.LANDING.PROMO.ENABLED),
+        LANDING_TAG: (window.LANDING && window.LANDING.PROMO && window.LANDING.PROMO.TAG) || "GLD100"
+      }
     };
 
+    // ✅ Respeta EXACTAMENTE tu array tal como lo pegaste
     const FIXED_PHONES = [
       "5493518582701", // lachispa
       "5491158538012", // lenga
@@ -207,7 +223,7 @@
       "5493516216803", // queen31
       "5492284683769", // mendoza16
       "5491171961647", // chola11
-      "5493517384743", // gallego 
+      "5493517384743", // gallego
       "5491125087707", // Gallego
       //"549116264692",  // elsecret -----> pedir numero bien
       "5493562675412", // leo26
@@ -219,7 +235,6 @@
       "5493513150689", // elurrin
       "5493563496015"  // laprima
     ];
-    
 
     function normalizePhoneDigits(raw){ return String(raw||"").replace(/\D+/g,"").trim(); }
 
