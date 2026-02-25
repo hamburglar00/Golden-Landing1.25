@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>GOLDEN</title>
     <link rel="icon" href="favicon.ico" type="image/x-icon" />
+    <link rel="preload" as="image" href="imagenes/logo.png" type="image/png" fetchpriority="high">
 
     <!-- Critical CSS -->
     <style>
@@ -69,9 +70,11 @@
       (function(){
         function normEmail(v){ return (v||"").trim().toLowerCase(); }
         function normPhone(v){
-          var p=(v||"").replace(/\D+/g,"");
-          if(p && p.length===10) p="54"+p; // AR si viene 10 dígitos
-          return p;
+          var d=(v||"").replace(/\D+/g,"");
+          if(!d) return "";
+          if(d.startsWith("54")) return d; // ya tiene país
+          d = d.replace(/^0+/, "").replace(/^15/, "");
+          return "549"+d;
         }
         function safeUUID(){
           return (window.crypto && window.crypto.randomUUID)
@@ -124,7 +127,7 @@
         <a class="whatsapp-button" id="whatsappButton" href="#" rel="noopener noreferrer" aria-label="Crear usuario por WhatsApp">
           <span>¡Contactá ya!</span>
           <img src="imagenes/whatsapp.png" alt="whatsapp"
-               class="whatsapp-icon" width="24" height="24" decoding="async" loading="lazy" />
+               class="whatsapp-icon" width="24" height="24" decoding="async" />
         </a>
 
         <p class="subtitle">Sin Límite de retiro<br />Sin Cronogramas<br />Ganás y cobrás a cualquier hora</p>
@@ -333,7 +336,7 @@
         // 3) Redirect con delay mínimo para que Pixel tenga chance de salir
         setTimeout(function(){
           window.location.assign("https://wa.me/"+cleanPhone+"?text="+encodeURIComponent(mensaje));
-        }, 80);
+        }, 150);
       }
 
       document.addEventListener("DOMContentLoaded",function(){
